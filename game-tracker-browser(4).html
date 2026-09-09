@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jake's Game Tracker</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0A0A0A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Game Tracker">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0A0A0A; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  
+  .header { padding: 24px 24px 0; }
+  .eyebrow { font-size: 11px; color: #8E8E93; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+  .title { font-size: 32px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 16px; }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 24px 16px; }
+  .tab { padding: 7px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; background: #1C1C1E; color: #8E8E93; transition: all 0.15s; }
+  .tab.active { color: #fff; }
+
+  .content { padding: 0 24px 40px; max-width: 1200px; }
+  
+  .platform-note { background: #1C1C1E; border-radius: 12px; padding: 10px 14px; font-size: 13px; color: #8E8E93; margin-bottom: 14px; }
+
+  .stats { display: flex; gap: 10px; margin-bottom: 16px; }
+  .stat { flex: 1; background: #1C1C1E; border-radius: 12px; padding: 12px 14px; }
+  .stat-num { font-size: 24px; font-weight: 700; }
+  .stat-label { font-size: 11px; color: #8E8E93; margin-top: 2px; }
+
+  .columns { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+  
+  .section-label { font-size: 11px; font-weight: 700; color: #8E8E93; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  
+  .card { background: #1C1C1E; border-radius: 14px; overflow: hidden; margin-bottom: 16px; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-bottom: 1px solid #2C2C2E; }
+  .row:last-child { border-bottom: none; }
+  
+  .check { width: 22px; height: 22px; border-radius: 11px; border: 2px solid #3A3A3C; background: transparent; flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .check.checked { border: none; }
+  .check svg { display: none; }
+  .check.checked svg { display: block; }
+
+  .game-title { font-size: 14px; font-weight: 600; flex: 1; }
+  .game-title.done { color: #8E8E93; text-decoration: line-through; }
+  .game-note { font-size: 11px; color: #8E8E93; margin-top: 2px; }
+  
+  .badge { font-size: 10px; font-weight: 700; border-radius: 6px; padding: 2px 7px; flex-shrink: 0; }
+
+  .empty { font-size: 13px; color: #3A3A3C; text-align: center; padding: 20px; }
+
+  .hidden { display: none; }
+  .summary { padding: 0 24px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .summary-row { display: flex; align-items: center; gap: 10px; }
+  .summary-dot { width: 8px; height: 8px; border-radius: 4px; flex-shrink: 0; }
+  .summary-label { font-size: 12px; color: #8E8E93; flex: 1; }
+  .summary-val { font-size: 13px; font-weight: 700; }
+  .summary-divider { height: 1px; background: #1C1C1E; margin: 2px 0; }
+  .summary-future { font-size: 11px; color: #5A5A5A; display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+  .summary-future-dot { width: 6px; height: 6px; border-radius: 3px; background: #3A3A3C; flex-shrink: 0; }
+  .np-card { background: #1C1C1E; border-radius: 14px; overflow: hidden; margin-bottom: 12px; }
+  .np-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #2C2C2E; }
+  .np-row:last-child { border-bottom: none; }
+  .np-platform { font-size: 10px; font-weight: 700; border-radius: 6px; padding: 2px 7px; flex-shrink: 0; }
+  .np-title { font-size: 14px; font-weight: 600; flex: 1; }
+  .np-note { font-size: 11px; color: #8E8E93; margin-top: 1px; }
+  .hrs-input { width: 52px; background: #2C2C2E; border: 1px solid #3A3A3C; border-radius: 8px; color: #fff; font-size: 13px; font-weight: 700; text-align: center; padding: 4px 6px; }
+  .hrs-input:focus { outline: none; border-color: #007AFF; }
+  .hrs-label { font-size: 11px; color: #8E8E93; margin-left: 2px; }
+  .np-total { background: #1C1C1E; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+  .np-total-label { font-size: 12px; color: #8E8E93; text-transform: uppercase; letter-spacing: 0.5px; }
+  .np-total-num { font-size: 28px; font-weight: 700; color: #FF9500; }
+  .drag-handle { cursor: grab; color: #3A3A3C; font-size: 16px; padding: 0 4px; user-select: none; flex-shrink: 0; }
+  .drag-handle:active { cursor: grabbing; }
+  .row.dragging { opacity: 0.4; background: #2C2C2E; }
+  .row.drag-over { border-top: 2px solid #007AFF; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="eyebrow">Jake's Backlog</div>
+  <h1 class="title">Game Queue</h1>
+</div>
+
+<div class="summary" id="summary"></div>
+<div style="padding:0 24px 8px;text-align:right"><button onclick="if(confirm('Reset all progress to defaults?')){{localStorage.removeItem('jake_game_tracker_v1');location.reload();}}" style="background:none;border:none;color:#3A3A3C;font-size:11px;cursor:pointer;font-family:inherit">↺ Reset to defaults</button></div>
+<div class="tabs" id="tabs"></div>
+<div class="content" id="content"></div>
+
+<script>
+const PLATFORMS = [
+  {
+    id: "snes", label: "🕹️ SNES", color: "#CC4B4B",
+    note: "Hakchi2 CE — main focus",
+    active: [
+      { title: "Earthbound", note: "Fourside — about to do Gold Mine", hrs: 12 },
+      { title: "Donkey Kong Country", note: "Here and there", hrs: 4 },
+    ],
+    queue: [
+      { title: "A Link to the Past", hrs: 12 },
+      { title: "Final Fantasy IV", hrs: 20 },
+      { title: "Final Fantasy V", hrs: 30 },
+      { title: "Final Fantasy VI", hrs: 35 },
+    ],
+  },
+  {
+    id: "gba", label: "🎮 GBA", color: "#9B59B6",
+    note: "Hakchi2 CE via SNES",
+    active: [],
+    queue: [
+      { title: "Metroid Fusion", hrs: 8 },
+      { title: "Metroid Zero Mission", hrs: 6 },
+      { title: "Aria of Sorrow", hrs: 10 },
+    ],
+  },
+  {
+    id: "switch", label: "🔴 Switch", color: "#E4000F",
+    note: "Handheld + TV",
+    active: [
+      { title: "Afterimage", note: "~20% done", hrs: 16 },
+      { title: "Spyro Reignited", note: "~45% — 100% run", hrs: 7 },
+    ],
+    queue: [
+      { title: "New 'n' Tasty (Abe)", hrs: 8 },
+      { title: "Stranger's Wrath", hrs: 12 },
+      { title: "Oddworld: Soulstorm", hrs: 12 },
+      { title: "KOTOR 2", hrs: 35 },
+      { title: "Tears of the Kingdom", hrs: 55 },
+    ],
+  },
+  {
+    id: "xbox", label: "🟢 Xbox One", color: "#107C10",
+    note: "Current Xbox — TV gaming",
+    active: [
+    ],
+    queue: [
+      { title: "Halo 2 Anniversary", hrs: 10 },
+      { title: "Halo 3", hrs: 10 },
+      { title: "Fable", hrs: 15 },
+      { title: "Skyrim", hrs: 35 },
+      { title: "Blue Dragon", hrs: 45 },
+    ],
+  },
+  {
+    id: "xbox_og", label: "⬛ OG Xbox", color: "#5A5A5A",
+    note: "🛒 GOAL: Buy an OG Xbox first!",
+    active: [],
+    queue: [
+      { title: "Splinter Cell", hrs: 12 },
+      { title: "ToeJam & Earl 3", hrs: 8 },
+      { title: "Blinx: The Time Sweeper", hrs: 8 },
+      { title: "Whacked", note: "Fun casual", hrs: 5 },
+      { title: "Tao Feng", note: "Fun casual", hrs: 5 },
+    ],
+  },
+  {
+    id: "rpi", label: "🍓 Retro / Pi", color: "#C51A4A",
+    note: "🛒 GOAL: Buy a Raspberry Pi + set up CRT!",
+    active: [],
+    queue: [
+      { title: "Majora's Mask", note: "N64", hrs: 22 },
+      { title: "Banjo-Kazooie", note: "N64", hrs: 12 },
+      { title: "Ocarina of Time", note: "N64", hrs: 25 },
+      { title: "Super Mario 64", note: "N64", hrs: 12 },
+      { title: "Spyro the Dragon (OG)", note: "PS1 — original version", hrs: 12 },
+      { title: "Castlevania: Symphony of the Night", note: "PS1 — 100% on CRT", hrs: 20 },
+      { title: "Super Metroid", note: "SNES — 100% replay on CRT with achievements", hrs: 15 },
+      { title: "GTA Vice City", note: "PS2", hrs: 15 },
+    ],
+  },
+  {
+    id: "pc", label: "💻 PC", color: "#0078D4",
+    note: "Back up — low priority for now",
+    active: [
+    ],
+    rotation: [
+      { title: "Black Mesa", note: "Was playing before PC broke", hrs: 15 },
+      { title: "Cobalt Core", note: "Was playing before PC broke", hrs: 12 },
+      { title: "Dicey Dungeons", note: "Was playing before PC broke", hrs: 8 },
+      { title: "DUSK", note: "Was playing before PC broke", hrs: 10 },
+      { title: "Lucah: Born of a Dream", note: "Was playing before PC broke", hrs: 8 },
+      { title: "Neva", note: "Was playing before PC broke", hrs: 8 },
+      { title: "Nobody Saves the World", note: "Was playing before PC broke", hrs: 12 },
+      { title: "Sable", note: "Was playing before PC broke", hrs: 12 },
+      { title: "The Sojourn", note: "Was playing before PC broke", hrs: 8 },      { title: "UNSIGHTED", note: "Was playing before PC broke", hrs: 10 },
+      { title: "Wizard of Legend", note: "Was playing before PC broke", hrs: 10 },
+    ],
+    queue: [
+      { title: "Absolver", hrs: 10 },
+      { title: "AMID EVIL", hrs: 8 },
+      { title: "Amnesia: The Dark Descent", hrs: 8 },
+      { title: "Aragami", hrs: 8 },
+      { title: "Contrast", hrs: 5 },
+      { title: "F.E.A.R", hrs: 10 },
+      { title: "F.E.A.R 2", hrs: 8 },
+      { title: "F.E.A.R 3", hrs: 6 },
+      { title: "GTA V", hrs: 35 },
+      { title: "Grow Home", hrs: 4 },
+      { title: "Hylics 2", hrs: 8 },
+      { title: "Life is Strange: Before the Storm", hrs: 6 },
+      { title: "Neva", note: "", hrs: 8 },
+      { title: "Nobody Saves the World", note: "", hrs: 12 },
+      { title: "Loom", hrs: 4 },
+      { title: "Mad Max", hrs: 20 },
+      { title: "Quantum Break", hrs: 12 },
+      { title: "Q.U.B.E 2", hrs: 8 },
+      { title: "Tomb Raider GOTY", hrs: 15 },
+      { title: "Unravel Two", hrs: 6 },
+      { title: "A Way Out", hrs: 6 },
+      { title: "The Witcher Enhanced Edition", hrs: 35 },
+      { title: "World to the West", hrs: 8 },
+      { title: "Wuppo", hrs: 8 },
+      { title: "Kanjozoku Game", hrs: 5 },
+      { title: "Legrand Legacy", hrs: 15 },
+      { title: "Neva", note: "", hrs: 8 },
+      { title: "Nobody Saves the World", note: "", hrs: 12 },
+      { title: "Loom", hrs: 4 },
+      { title: "Mythargia", hrs: 5 },
+      { title: "Police Simulator", hrs: 10 },
+      { title: "Resident Evil Revelations 2", hrs: 10 },
+      { title: "Tin Hearts", hrs: 6 },
+    ],
+  },
+];
+
+const ONGOING = [
+  { title: "Enter the Gungeon", platform: "Switch", note: "Roguelite — chill sessions" },
+  { title: "Cobalt Core", platform: "PC", note: "Roguelite — ongoing" },
+  { title: "Dicey Dungeons", platform: "PC", note: "Ongoing" },
+  { title: "Wizard of Legend", platform: "PC", note: "Roguelite — ongoing" },
+  { title: "Vampire Crawlers", platform: "Switch", note: "Roguelite — chill sessions" },
+  { title: "Mario Galaxy", platform: "Switch", note: "60/120 stars ⭐ — 100% in progress" },
+  { title: "Hades", platform: "Xbox", note: "Roguelite — no finish line" },
+];
+
+const BENCHED = [
+  { title: "Chibi-Robo", platform: "Switch", note: "Benched" },
+  { title: "Black Mesa", platform: "PC", note: "Benched" },
+  { title: "Summer Catchers", platform: "PC", note: "Dropped" },
+  { title: "Mechanicus", platform: "Switch", note: "Benched" },
+  { title: "Age of Empires II", platform: "PC", note: "Tried, shelved" },
+  { title: "Anuchard", platform: "PC", note: "Tried, shelved" },
+  { title: "Brothers", platform: "PC", note: "Tried, shelved" },
+  { title: "Child of Light", platform: "PC", note: "Tried, shelved" },
+  { title: "Commandos", platform: "PC", note: "Tried, shelved" },
+  { title: "Divinity OS2", platform: "PC", note: "Tried, shelved" },
+  { title: "Dust An Elysian Tail", platform: "PC", note: "Tried, shelved" },
+  { title: "Eastshade", platform: "PC", note: "Tried, shelved" },
+  { title: "Eternal Hope", platform: "PC", note: "Tried, shelved" },
+  { title: "Figment", platform: "PC", note: "Tried, shelved" },
+  { title: "The First Tree", platform: "PC", note: "Tried, shelved" },
+  { title: "Gauntlet Slayer", platform: "PC", note: "Tried, shelved" },
+  { title: "Getting Over It", platform: "PC", note: "Tried, shelved" },
+  { title: "Hedon Bloodrite", platform: "PC", note: "Tried, shelved" },
+  { title: "Hellblade", platform: "PC", note: "Tried, shelved" },
+  { title: "Heretic's Fork", platform: "PC", note: "Tried, shelved" },
+  { title: "Hogwarts Legacy", platform: "PC", note: "Tried, shelved" },
+  { title: "It Takes Two", platform: "PC", note: "Tried, shelved" },
+  { title: "Jump King", platform: "PC", note: "Tried, shelved" },
+  { title: "Ken Follett Pillars of Earth", platform: "PC", note: "Tried, shelved" },
+  { title: "Life is Strange", platform: "PC", note: "Tried, shelved" },
+  { title: "The Long Dark", platform: "PC", note: "Tried, shelved" },
+  { title: "Loop Hero", platform: "PC", note: "Tried, shelved" },
+  { title: "Lost in Random", platform: "PC", note: "Tried, shelved" },
+  { title: "Metro 2033 Redux", platform: "PC", note: "Tried, shelved" },
+  { title: "Middle Earth Shadow of War", platform: "PC", note: "Tried, shelved" },
+  { title: "Nobody Saves the World", platform: "PC", note: "Tried, shelved" },
+  { title: "Oxenfree", platform: "PC", note: "Tried, shelved" },
+  { title: "Planet Zoo", platform: "PC", note: "Tried, shelved" },
+  { title: "Portal 2", platform: "PC", note: "Tried, shelved" },
+  { title: "Prince of Persia", platform: "PC", note: "Tried, shelved" },
+  { title: "Rayman Legends", platform: "PC", note: "Tried, shelved" },
+  { title: "Risen", platform: "PC", note: "Tried, shelved" },
+  { title: "Sandream", platform: "PC", note: "Tried, shelved" },
+  { title: "Seasons after Fall", platform: "PC", note: "Tried, shelved" },
+  { title: "Shift Happens", platform: "PC", note: "Tried, shelved" },
+  { title: "Signal from Tolva", platform: "PC", note: "Tried, shelved" },
+  { title: "Spiritfarer", platform: "PC", note: "Tried, shelved" },
+  { title: "Straima", platform: "PC", note: "Tried, shelved" },
+  { title: "Sunset Overdrive", platform: "PC", note: "Tried, shelved" },
+  { title: "Super Bunny Man", platform: "PC", note: "Tried, shelved" },
+  { title: "The Swapper", platform: "PC", note: "Tried, shelved" },
+  { title: "Talos Principle", platform: "PC", note: "Tried, shelved" },
+  { title: "Tyranny", platform: "PC", note: "Tried, shelved" },
+  { title: "Valley", platform: "PC", note: "Tried, shelved" },
+  { title: "Yume Nikki", platform: "PC", note: "Tried, shelved" },
+];
+
+const BEATEN = [
+  "20 Minutes Till Dawn",
+  "AER Memories of Old",
+  "After Death",
+  "Arise: A Simple Story",
+  "Astral Ascent",
+  "Axiom Verge",
+  "BADLAND: GOTY Edition",
+  "Balatro",
+  "Bastion",
+  "Black Mesa",
+  "Blasphemous",
+  "Blasphemous 2",
+  "Bloons TD 6",
+  "Blue Fire",
+  "BOKURA",
+  "Borderlands GOTY",
+  "Broforce",
+  "Brotato",
+  "The Cabin Factory",
+  "Celeste",
+  "Children of Morta",
+  "CHRONO TRIGGER",
+  "Cobalt Core",
+  "Crash Bandicoot N. Sane Trilogy",
+  "CrossCode",
+  "Cuphead",
+  "Darkest Dungeon",
+  "Dead Cells",
+  "Dead Space 2",
+  "Death Must Die",
+  "Death's Door",
+  "DEVIATOR",
+  "Distance",
+  "Don't Starve Together",
+  "DOOM",
+  "DOOM Eternal",
+  "DUSK",
+  "Eastshade",
+  "Environmental Station Alpha",
+  "Eternal Hope",
+  "Etherborn",
+  "Europa",
+  "Exo One",
+  "Fallout 4",
+  "Fe",
+  "Firewatch",
+  "Flower",
+  "Furi",
+  "Getting Over It",
+  "GRIS",
+  "Guacamelee! 2",
+  "Gunfire Reborn",
+  "Haiku the Robot",
+  "A Hat in Time",
+  "Hellbound",
+  "Hoa",
+  "Hob",
+  "Hollow Knight",
+  "Hollow Knight: Silksong",
+  "Hylics",
+  "Hyper Light Drifter",
+  "INMOST",
+  "INSIDE",
+  "Journey",
+  "Life is Strange",
+  "LIMBO",
+  "Little Misfortune",
+  "Little Nightmares",
+  "Little Nightmares II",
+  "Mandagon",
+  "Megabonk",
+  "The Messenger",
+  "Metro 2033 Redux",
+  "Minami Lane",
+  "Nine Sols",
+  "Noita",
+  "Omno",
+  "Ori and the Blind Forest",
+  "Ori: Definitive Edition",
+  "Ori and the Will of the Wisps",
+  "Outer Wilds",
+  "Outlast",
+  "Outlast 2",
+  "Overcooked",
+  "Overcooked! 2",
+  "Owl Watch",
+  "Pathway",
+  "Project Warlock",
+  "Pseudoregalia",
+  "Psychonauts",
+  "Pumpkin Jack",
+  "Rabi-Ribi",
+  "Rayman Legends",
+  "Refunct",
+  "RiME",
+  "Risen",
+  "Risk of Rain 2",
+  "Sable",
+  "Scarlet Maiden",
+  "Seasons after Fall",
+  "Shift Happens",
+  "THE SHORE",
+  "A Short Hike",
+  "Sifu",
+  "Slay the Spire",
+  "The Sojourn",
+  "Sphinx and the Cursed Mummy",
+  "STAR WARS Jedi: Fallen Order",
+  "A Story About My Uncle",
+  "Summer Catchers",
+  "Sundered",
+  "Super Bunny Man",
+  "Super Meat Boy",
+  "Superflight",
+  "Supraland",
+  "To the Moon",
+  "Undertale",
+  "The Unfinished Swan",
+  "UNSIGHTED",
+  "Vampire Survivors",
+  "Voyage",
+  "We Were Here",
+  "We Were Here Forever",
+  "We Were Here Together",
+  "We Were Here Too",
+  "The Wild Eternal",
+  "The Witcher 3",
+  "Wizard of Legend",
+  "Yooka-Laylee",
+  "Zuma's Revenge",
+  "BioShock Infinite", "Sable",
+  "Halo: Combat Evolved (Heroic)",
+  "KOTOR 1",
+  "The Knight Witch",
+  "Alba: A Wildlife Adventure",
+  "Bō: Path of the Teal Lotus",
+  "Katana Zero",
+  "Silksong",
+  "The Artful Escape",
+  "Call of Juarez: Gunslinger",
+  "Yoku's Island Express",
+  "Mario Galaxy (story)",
+  "Tunic",
+  "Olija",
+  "Spyro Reignited (story)",
+  "Afterimage",
+  "Super Metroid",
+  "Breath of the Wild"
+];
+
+let currentTab = "snes";
+
+// Modal
+const modal = document.createElement('div');
+modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:999;align-items:center;justify-content:center;';
+modal.innerHTML = `<div style="background:#1C1C1E;border-radius:20px;padding:24px;max-width:320px;width:90%;text-align:center;">
+  <div id="modal-title" style="font-size:17px;font-weight:700;margin-bottom:8px;color:#fff"></div>
+  <div id="modal-msg" style="font-size:14px;color:#8E8E93;margin-bottom:20px;line-height:1.5"></div>
+  <div style="display:flex;gap:10px;">
+    <button id="modal-cancel" style="flex:1;padding:12px;border-radius:12px;border:none;background:#2C2C2E;color:#fff;font-size:15px;font-weight:600;cursor:pointer;">Cancel</button>
+    <button id="modal-confirm" style="flex:1;padding:12px;border-radius:12px;border:none;background:#34C759;color:#fff;font-size:15px;font-weight:600;cursor:pointer;">Yes</button>
+  </div>
+</div>`;
+document.body.appendChild(modal);
+document.getElementById('modal-cancel').onclick = () => { modal.style.display = 'none'; };
+
+function showModal(title, msg, confirmColor, onConfirm) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-msg').textContent = msg;
+  document.getElementById('modal-confirm').style.background = confirmColor;
+  document.getElementById('modal-confirm').onclick = () => { modal.style.display = 'none'; onConfirm(); };
+  modal.style.display = 'flex';
+}
+
+function hex2rgba(hex, alpha) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function moveToActive(platformId, game) {
+  const p = PLATFORMS.find(p => p.id === platformId);
+  p.queue = p.queue.filter(g => g.title !== game.title);
+  if (p.rotation) p.rotation = p.rotation.filter(g => g.title !== game.title);
+  p.active.push({ ...game, note: 'Just started' });
+  renderPlatform(p);
+  renderSummary();
+  saveState();
+}
+
+function moveToBeaten(platformId, game) {
+  const p = PLATFORMS.find(p => p.id === platformId);
+  p.active = p.active.filter(g => g.title !== game.title);
+  BEATEN.push(game.title);
+  renderPlatform(p);
+  renderSummary();
+}
+
+function makeRow(g, platformId, section, color) {
+  const div = document.createElement('div');
+  div.className = 'row';
+
+  const check = document.createElement('div');
+  check.className = 'check';
+  check.innerHTML = `<svg width="11" height="8" viewBox="0 0 11 8" fill="none"><path d="M1 4L4 7L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+  const info = document.createElement('div');
+  info.style.cssText = 'flex:1;min-width:0';
+  info.innerHTML = `<div class="game-title">${g.title}</div>${g.note ? `<div class="game-note">${g.note}</div>` : ''}`;
+
+  if (g.hrs) {
+    const badge = document.createElement('div');
+    badge.className = 'badge';
+    badge.style.cssText = `color:${color};background:${hex2rgba(color,0.15)}`;
+    badge.textContent = `${g.hrs}h`;
+    div.appendChild(check);
+    div.appendChild(info);
+    div.appendChild(badge);
+  } else {
+    div.appendChild(check);
+    div.appendChild(info);
+  }
+
+  check.addEventListener('click', () => {
+    if (section === 'queue' || section === 'rotation') {
+      showModal(
+        '▶ Start Playing?',
+        `Move "${g.title}" to Currently Playing?`,
+        '#007AFF',
+        () => moveToActive(platformId, g)
+      );
+    } else if (section === 'active') {
+      showModal(
+        '✅ Mark as Beaten?',
+        `Move "${g.title}" to the Beaten list?`,
+        '#34C759',
+        () => moveToBeaten(platformId, g)
+      );
+    }
+  });
+
+  return div;
+}
+
+function makeCard(games, platformId, section, color) {
+  if (!games || !games.length) {
+    const d = document.createElement('div');
+    d.className = 'empty';
+    d.textContent = 'Nothing here yet';
+    return d;
+  }
+  const card = document.createElement('div');
+  card.className = 'card';
+  games.forEach(g => card.appendChild(makeRow(g, platformId, section, color)));
+  addDragHandles(card, games, platformId, section);
+  return card;
+}
+
+function renderPlatform(p) {
+  const activeHrs = (p.active||[]).reduce((a,g)=>a+(g.hrs||0),0);
+  const queueHrs = (p.queue||[]).reduce((a,g)=>a+(g.hrs||0),0);
+  const rotHrs = (p.rotation||[]).reduce((a,g)=>a+(g.hrs||0),0);
+  const total = activeHrs + queueHrs + rotHrs;
+
+  let html = `<div class="platform-note">${p.note}</div>`;
+  html += `<div class="stats">
+    <div class="stat" style="border-left:3px solid ${p.color}">
+      <div class="stat-num" style="color:${p.color}">${activeHrs}h</div>
+      <div class="stat-label">Active</div>
+    </div>
+    <div class="stat" style="border-left:3px solid #007AFF">
+      <div class="stat-num" style="color:#007AFF">${queueHrs+rotHrs}h</div>
+      <div class="stat-label">Queue</div>
+    </div>
+    <div class="stat" style="border-left:3px solid #FF9500">
+      <div class="stat-num" style="color:#FF9500">${total}h</div>
+      <div class="stat-label">Total</div>
+    </div>
+  </div>`;
+
+  const content = document.getElementById('content');
+  content.innerHTML = html;
+
+  const cols = document.createElement('div');
+  cols.className = 'columns';
+
+  if (p.active && p.active.length) {
+    const col = document.createElement('div');
+    col.innerHTML = '<div class="section-label">🎮 Currently Playing — tick to mark beaten</div>';
+    col.appendChild(makeCard(p.active, p.id, 'active', p.color));
+    cols.appendChild(col);
+  }
+
+  if (p.rotation && p.rotation.length) {
+    const col = document.createElement('div');
+    col.innerHTML = '<div class="section-label">⏸️ Was Playing (PC broke) — tick to move to active</div>';
+    col.appendChild(makeCard(p.rotation, p.id, 'rotation', '#FF9500'));
+    cols.appendChild(col);
+  }
+
+  if (p.queue && p.queue.length) {
+    const col = document.createElement('div');
+    col.innerHTML = '<div class="section-label">📋 Up Next — tick to start playing</div>';
+    col.appendChild(makeCard(p.queue, p.id, 'queue', '#007AFF'));
+    cols.appendChild(col);
+  }
+
+  content.appendChild(cols);
+}
+
+function renderOngoing() {
+  const content = document.getElementById('content');
+  content.innerHTML = '<div class="platform-note">🔄 Roguelikes & 100% grinds — no finish line</div>';
+  const card = document.createElement('div');
+  card.className = 'card';
+  ONGOING.forEach(g => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `<div style="flex:1"><div class="game-title">${g.title}</div><div class="game-note">${g.note}</div></div><div class="badge" style="color:#FF9500;background:rgba(255,149,0,0.15)">${g.platform}</div>`;
+    card.appendChild(row);
+  });
+  content.appendChild(card);
+}
+
+function renderBenched() {
+  const content = document.getElementById('content');
+  content.innerHTML = '';
+  const card = document.createElement('div');
+  card.className = 'card';
+  BENCHED.forEach(g => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `<div style="flex:1"><div class="game-title" style="color:#8E8E93">${g.title}</div><div class="game-note">${g.note}</div></div><div style="font-size:11px;color:#3A3A3C">${g.platform}</div>`;
+    card.appendChild(row);
+  });
+  content.appendChild(card);
+}
+
+function renderBeaten() {
+  const content = document.getElementById('content');
+  content.innerHTML = '';
+  const card = document.createElement('div');
+  card.className = 'card';
+  BEATEN.forEach(g => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `<span style="font-size:14px">✅</span><div class="game-title" style="color:#8E8E93">${g}</div>`;
+    card.appendChild(row);
+  });
+  content.appendChild(card);
+}
+
+
+
+
+function getTotalNowPlaying() {
+  let hrs = 0;
+  let count = 0;
+  PLATFORMS.forEach(p => {
+    (p.active || []).forEach(g => { hrs += g.hrs || 0; count++; });
+  });
+  return { hrs, count };
+}
+
+function getTotalQueue() {
+  let hrs = 0;
+  PLATFORMS.filter(p => !['xbox_og','rpi'].includes(p.id)).forEach(p => {
+    (p.queue || []).forEach(g => { hrs += g.hrs || 0; });
+    (p.rotation || []).forEach(g => { hrs += g.hrs || 0; });
+  });
+  return hrs;
+}
+
+function getFutureHrs() {
+  let hrs = 0;
+  PLATFORMS.filter(p => ['xbox_og','rpi'].includes(p.id)).forEach(p => {
+    (p.queue || []).forEach(g => { hrs += g.hrs || 0; });
+  });
+  return hrs;
+}
+
+
+const STORAGE_KEY = 'jake_game_tracker_v1';
+
+function saveState() {
+  const state = {
+    platforms: PLATFORMS.map(p => ({
+      id: p.id,
+      active: p.active,
+      queue: p.queue,
+      rotation: p.rotation || [],
+    })),
+    beaten: BEATEN,
+    ongoing: ONGOING,
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return;
+    const state = JSON.parse(saved);
+    if (state.platforms) {
+      state.platforms.forEach(saved => {
+        const p = PLATFORMS.find(p => p.id === saved.id);
+        if (p) {
+          p.active = saved.active || [];
+          p.queue = saved.queue || [];
+          if (saved.rotation) p.rotation = saved.rotation;
+        }
+      });
+    }
+    if (state.beaten) BEATEN.length = 0, state.beaten.forEach(b => BEATEN.push(b));
+    if (state.ongoing) ONGOING.length = 0, state.ongoing.forEach(o => ONGOING.push(o));
+  } catch(e) {
+    console.log('Could not load saved state', e);
+  }
+}
+
+function renderSummary() {
+  const np = getTotalNowPlaying();
+  const queueHrs = getTotalQueue();
+  const futureHrs = getFutureHrs();
+  const totalHrs = np.hrs + queueHrs;
+
+  const el = document.getElementById('summary');
+  el.innerHTML = `
+    <div class="summary-row">
+      <div class="summary-dot" style="background:#34C759"></div>
+      <div class="summary-label">Now Playing <span style="color:#5A5A5A">(${np.count} games)</span></div>
+      <div class="summary-val" style="color:#34C759" id="summary-np">${np.hrs}h</div>
+    </div>
+    <div class="summary-row">
+      <div class="summary-dot" style="background:#007AFF"></div>
+      <div class="summary-label">Total hours left</div>
+      <div class="summary-val" style="color:#007AFF" id="summary-total">${totalHrs}h</div>
+    </div>
+    <div class="summary-divider"></div>
+    <div class="summary-future">
+      <div class="summary-future-dot"></div>
+      <span>Future — OG Xbox + Raspberry Pi: <strong style="color:#5A5A5A">${futureHrs}h locked behind hardware</strong></span>
+    </div>
+  `;
+}
+
+function addDragHandles(card, games, platformId, section) {
+  const rows = card.querySelectorAll('.row');
+  rows.forEach((row, idx) => {
+    const handle = document.createElement('div');
+    handle.className = 'drag-handle';
+    handle.textContent = '⠿';
+    handle.draggable = true;
+    row.insertBefore(handle, row.firstChild);
+
+    handle.addEventListener('dragstart', (e) => {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', idx);
+      row.classList.add('dragging');
+    });
+    handle.addEventListener('dragend', () => {
+      row.classList.remove('dragging');
+      card.querySelectorAll('.row').forEach(r => r.classList.remove('drag-over'));
+    });
+    row.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      card.querySelectorAll('.row').forEach(r => r.classList.remove('drag-over'));
+      row.classList.add('drag-over');
+    });
+    row.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+      const toIdx = idx;
+      if (fromIdx === toIdx) return;
+      row.classList.remove('drag-over');
+      // Reorder the data array
+      const p = PLATFORMS.find(p => p.id === platformId);
+      const arr = section === 'queue' ? p.queue : section === 'active' ? p.active : p.rotation;
+      const moved = arr.splice(fromIdx, 1)[0];
+      arr.splice(toIdx, 0, moved);
+      // Re-render
+      renderPlatform(p);
+      saveState();
+    });
+  });
+}
+
+function renderNowPlaying() {
+  const content = document.getElementById('content');
+  content.innerHTML = '';
+
+  // Gather all active games across platforms
+  const allActive = [];
+  PLATFORMS.forEach(p => {
+    (p.active || []).forEach(g => {
+      allActive.push({ ...g, platformId: p.id, platformLabel: p.label, platformColor: p.color });
+    });
+
+  });
+
+  // Total hours display
+  const totalDiv = document.createElement('div');
+  totalDiv.className = 'np-total';
+  totalDiv.innerHTML = `
+    <div>
+      <div class="np-total-label">Total Hours to Clear</div>
+      <div style="font-size:12px;color:#8E8E93;margin-top:2px">${allActive.length} games currently active</div>
+    </div>
+    <div class="np-total-num" id="np-total">${allActive.reduce((a,g)=>a+(g.hrs||0),0)}h</div>
+  `;
+  content.appendChild(totalDiv);
+
+  const card = document.createElement('div');
+  card.className = 'np-card';
+
+  allActive.forEach((g, i) => {
+    const row = document.createElement('div');
+    row.className = 'np-row';
+    row.style.cssText = i === allActive.length - 1 ? 'border-bottom:none' : '';
+
+    const check = document.createElement('div');
+    check.className = 'check';
+    check.innerHTML = `<svg width="11" height="8" viewBox="0 0 11 8" fill="none"><path d="M1 4L4 7L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    check.addEventListener('click', () => {
+      showModal(
+        '✅ Mark as Beaten?',
+        `Move "${g.title}" to the Beaten list?`,
+        '#34C759',
+        () => {
+          moveToBeaten(g.platformId, g);
+          renderNowPlaying();
+        }
+      );
+    });
+
+    const info = document.createElement('div');
+    info.style.cssText = 'flex:1;min-width:0';
+    info.innerHTML = `
+      <div class="np-title">${g.title}</div>
+      ${g.note ? `<div class="np-note">${g.note}</div>` : ''}
+    `;
+
+    const platBadge = document.createElement('div');
+    platBadge.className = 'np-platform';
+    platBadge.style.cssText = `color:${g.platformColor};background:${hex2rgba(g.platformColor,0.15)}`;
+    platBadge.textContent = g.platformLabel.replace(/^[^ ]+ /, '');
+
+    const hrsWrap = document.createElement('div');
+    hrsWrap.style.cssText = 'display:flex;align-items:center;gap:3px';
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.className = 'hrs-input';
+    input.value = g.hrs || 0;
+    input.min = 0;
+    input.addEventListener('change', () => {
+      const newHrs = parseInt(input.value) || 0;
+      const p = PLATFORMS.find(p => p.id === g.platformId);
+      const game = (p.active || []).find(a => a.title === g.title) || (p.rotation || []).find(a => a.title === g.title);
+      if (game) game.hrs = newHrs;
+      g.hrs = newHrs;
+      const total = allActive.reduce((a,x)=>a+(x.hrs||0),0);
+      document.getElementById('np-total').textContent = total + 'h';
+      renderSummary();
+      saveState();
+    });
+    const hrsLabel = document.createElement('span');
+    hrsLabel.className = 'hrs-label';
+    hrsLabel.textContent = 'hrs';
+    hrsWrap.appendChild(input);
+    hrsWrap.appendChild(hrsLabel);
+
+    row.appendChild(check);
+    row.appendChild(info);
+    row.appendChild(platBadge);
+    row.appendChild(hrsWrap);
+    card.appendChild(row);
+  });
+
+  content.appendChild(card);
+}
+
+function switchTab(id) {
+  currentTab = id;
+  document.querySelectorAll('.tab').forEach(t => {
+    const isActive = t.dataset.id === id;
+    t.classList.toggle('active', isActive);
+    const p = PLATFORMS.find(p => p.id === id);
+    const color = p ? p.color : id === 'ongoing' ? '#FF9500' : id === 'beaten' ? '#34C759' : '#8E8E93';
+    t.style.background = isActive ? color : '#1C1C1E';
+  });
+  const p = PLATFORMS.find(p => p.id === id);
+  if (id === 'nowplaying') renderNowPlaying();
+  else if (p) renderPlatform(p);
+  else if (id === 'ongoing') renderOngoing();
+  else if (id === 'benched') renderBenched();
+  else if (id === 'beaten') renderBeaten();
+}
+
+const tabsEl = document.getElementById('tabs');
+[{id:"nowplaying", label:"🎮 Now Playing", color:"#FF9500"}, ...PLATFORMS,
+  {id:'ongoing', label:'🔄 Ongoing', color:'#FF9500'},
+  {id:'benched', label:'💤 Benched', color:'#8E8E93'},
+  {id:'beaten', label:'✅ Beaten', color:'#34C759'},
+].forEach(p => {
+  const btn = document.createElement('button');
+  btn.className = 'tab';
+  btn.dataset.id = p.id;
+  btn.textContent = p.label;
+  btn.addEventListener('click', () => switchTab(p.id));
+  tabsEl.appendChild(btn);
+});
+
+loadState();
+renderSummary();
+switchTab('nowplaying');
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(r => console.log('SW registered'))
+      .catch(e => console.log('SW failed', e));
+  });
+}
+</script>
+</body>
+</html>
