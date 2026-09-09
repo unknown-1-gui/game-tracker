@@ -593,7 +593,7 @@ function moveFromBenchedToQueue(game) {
   const idx = BENCHED.findIndex(g => g.title === game.title);
   if (idx === -1) return;
   BENCHED.splice(idx, 1);
-  const p = PLATFORMS.find(p => p.id === game.platform) || PLATFORMS.find(p => p.id === 'switch');
+  const p = PLATFORMS.find(p => p.id === game.platform) || PLATFORMS.find(p => p.id === 'pc');
   if (p) p.queue.unshift({ title: game.title, note: 'Returned from bench', hrs: 0 });
   saveState();
   renderBenched();
