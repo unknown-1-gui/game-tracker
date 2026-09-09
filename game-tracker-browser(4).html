@@ -571,6 +571,32 @@ function moveToBeaten(platformId, game) {
   BEATEN.push(game.title);
   renderPlatform(p);
   renderSummary();
+  updateSticker();
+  saveState();
+  if (currentTab === 'beaten') renderBeaten();
+}
+
+
+function moveToBenched(platformId, game) {
+  const p = PLATFORMS.find(p => p.id === platformId);
+  if (!p) return;
+  p.active = p.active.filter(g => g.title !== game.title);
+  const date = new Date().toLocaleDateString('en-AU', {day:'numeric',month:'short',year:'numeric'});
+  BENCHED.push({ title: game.title, platform: p.id, note: 'Benched ' + date });
+  renderPlatform(p);
+  renderSummary();
+  saveState();
+  if (currentTab === 'benched') renderBenched();
+}
+
+function moveFromBenchedToQueue(game) {
+  const idx = BENCHED.findIndex(g => g.title === game.title);
+  if (idx === -1) return;
+  BENCHED.splice(idx, 1);
+  const p = PLATFORMS.find(p => p.id === game.platform) || PLATFORMS.find(p => p.id === 'switch');
+  if (p) p.queue.unshift({ title: game.title, note: 'Returned from bench', hrs: 0 });
+  saveState();
+  renderBenched();
 }
 
 function makeRow(g, platformId, section, color) {
@@ -585,7 +611,26 @@ function makeRow(g, platformId, section, color) {
   info.style.cssText = 'flex:1;min-width:0';
   info.innerHTML = `<div class="game-title">${g.title}</div>${g.note ? `<div class="game-note">${g.note}</div>` : ''}`;
 
-  if (g.hrs) {
+  if (section === 'active') {
+    const benchBtn = document.createElement('button');
+    benchBtn.textContent = '💤';
+    benchBtn.title = 'Bench this game';
+    benchBtn.style.cssText = 'background:rgba(220,50,50,0.15);border:1px solid rgba(220,50,50,0.3);border-radius:6px;color:#ff6b6b;font-size:14px;padding:4px 8px;cursor:pointer;flex-shrink:0;';
+    benchBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showModal('💤 Bench this game?', `Send "${g.title}" to Benched with today\'s date?`, '#ff6b6b', () => moveToBenched(platformId, g));
+    });
+    div.appendChild(check);
+    div.appendChild(info);
+    if (g.hrs) {
+      const badge = document.createElement('div');
+      badge.className = 'badge';
+      badge.style.cssText = `color:${color};background:${hex2rgba(color,0.15)}`;
+      badge.textContent = `${g.hrs}h`;
+      div.appendChild(badge);
+    }
+    div.appendChild(benchBtn);
+  } else if (g.hrs) {
     const badge = document.createElement('div');
     badge.className = 'badge';
     badge.style.cssText = `color:${color};background:${hex2rgba(color,0.15)}`;
@@ -707,7 +752,21 @@ function renderBenched() {
   BENCHED.forEach(g => {
     const row = document.createElement('div');
     row.className = 'row';
-    row.innerHTML = `<div style="flex:1"><div class="game-title" style="color:#8E8E93">${g.title}</div><div class="game-note">${g.note}</div></div><div style="font-size:11px;color:#3A3A3C">${g.platform}</div>`;
+    const info = document.createElement('div');
+    info.style.flex = '1';
+    info.innerHTML = `<div class="game-title" style="color:#8E8E93">${g.title}</div><div class="game-note">${g.note}</div>`;
+    const platTag = document.createElement('div');
+    platTag.style.cssText = 'font-size:11px;color:#3A3A3C;margin-right:8px';
+    platTag.textContent = g.platform;
+    const unBenchBtn = document.createElement('button');
+    unBenchBtn.textContent = '▶ Queue';
+    unBenchBtn.style.cssText = 'background:rgba(0,122,255,0.15);border:1px solid rgba(0,122,255,0.3);border-radius:6px;color:#007AFF;font-family:inherit;font-size:12px;padding:4px 10px;cursor:pointer;flex-shrink:0;';
+    unBenchBtn.addEventListener('click', () => {
+      showModal('▶ Back to Queue?', `Move "${g.title}" back to Up Next?`, '#007AFF', () => moveFromBenchedToQueue(g));
+    });
+    row.appendChild(info);
+    row.appendChild(platTag);
+    row.appendChild(unBenchBtn);
     card.appendChild(row);
   });
   content.appendChild(card);
