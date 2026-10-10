@@ -759,6 +759,172 @@ modal.innerHTML = `<div style="background:#1C1C1E;border-radius:20px;padding:24p
 document.body.appendChild(modal);
 document.getElementById('modal-cancel').onclick = () => { modal.style.display = 'none'; };
 
+// Spin Wheel Modal
+const spinModal = document.createElement('div');
+spinModal.id = 'spin-modal';
+spinModal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:1000;align-items:center;justify-content:center;flex-direction:column;';
+spinModal.innerHTML = `
+<div id="spin-container" style="display:flex;flex-direction:column;align-items:center;gap:20px;padding:24px;max-width:400px;width:95%;">
+  <div style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;letter-spacing:3px;color:#00FF41;">🎰 SPIN THE WHEEL</div>
+  <div style="position:relative;width:300px;height:300px;">
+    <canvas id="spin-canvas" width="300" height="300" style="border-radius:50%;display:block;"></canvas>
+    <div id="spin-pointer" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:18px;height:18px;background:#fff;border-radius:50%;border:3px solid #000;z-index:2;box-shadow:0 0 8px rgba(255,255,255,0.8);pointer-events:none;"></div>
+    <div id="spin-arrow" style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:24px solid #00FF41;filter:drop-shadow(0 0 6px #00FF41);z-index:3;pointer-events:none;"></div>
+  </div>
+  <button id="spin-btn" style="background:#00FF41;color:#000;border:none;padding:14px 40px;border-radius:30px;font-family:\'Bebas Neue\',sans-serif;font-size:22px;letter-spacing:3px;cursor:pointer;box-shadow:0 0 20px rgba(0,255,65,0.4);">SPIN</button>
+  <div id="spin-result" style="font-family:\'Bebas Neue\',sans-serif;font-size:24px;letter-spacing:2px;color:#fff;text-align:center;min-height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;"></div>
+  <button id="spin-close" style="background:#2C2C2E;color:#8E8E93;border:none;padding:10px 24px;border-radius:20px;font-size:14px;font-weight:600;cursor:pointer;">Close</button>
+</div>`;
+document.body.appendChild(spinModal);
+document.getElementById('spin-close').onclick = () => { spinModal.style.display = 'none'; };
+spinModal.addEventListener('click', (e) => { if (e.target === spinModal) spinModal.style.display = 'none'; });
+
+let spinAnimFrame = null;
+let spinIsSpinning = false;
+
+function drawWheel(games, angle) {
+  const canvas = document.getElementById('spin-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const cx = 150, cy = 150, r = 148;
+  const n = games.length;
+  if (n === 0) return;
+  const arc = (2 * Math.PI) / n;
+
+  const palette = [
+    '#E74C3C','#E67E22','#F1C40F','#2ECC71','#1ABC9C',
+    '#3498DB','#9B59B6','#E91E63','#00BCD4','#8BC34A',
+    '#FF5722','#607D8B','#FF9800','#4CAF50','#2196F3'
+  ];
+
+  ctx.clearRect(0, 0, 300, 300);
+
+  games.forEach((g, i) => {
+    const startAngle = angle + i * arc;
+    const endAngle = startAngle + arc;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fillStyle = palette[i % palette.length];
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Label
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(startAngle + arc / 2);
+    const labelR = r * 0.62;
+    ctx.translate(labelR, 0);
+    ctx.rotate(Math.PI / 2);
+
+    const maxLen = 14;
+    let text = g.title.length > maxLen ? g.title.substring(0, maxLen - 1) + '…' : g.title;
+    const fontSize = n > 8 ? 10 : 12;
+    ctx.font = `bold ${fontSize}px 'Bebas Neue', sans-serif`;
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowBlur = 3;
+    ctx.fillText(text, 0, 0);
+    ctx.restore();
+  });
+
+  // Center circle
+  ctx.beginPath();
+  ctx.arc(cx, cy, 20, 0, 2 * Math.PI);
+  ctx.fillStyle = '#111';
+  ctx.fill();
+  ctx.strokeStyle = '#00FF41';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+function getWinnerIndex(games, angle) {
+  const n = games.length;
+  const arc = (2 * Math.PI) / n;
+  // Arrow points up = -PI/2. Normalize angle to [0, 2PI)
+  let normalised = ((-angle - Math.PI / 2) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+  return Math.floor(normalised / arc) % n;
+}
+
+function showSpinWheel() {
+  const allActive = [];
+  PLATFORMS.forEach(p => {
+    (p.active || []).forEach(g => {
+      allActive.push({ ...g, platformLabel: p.label, platformColor: p.color });
+    });
+  });
+
+  if (allActive.length === 0) {
+    alert("No active games to spin!");
+    return;
+  }
+
+  spinModal.style.display = 'flex';
+  document.getElementById('spin-result').innerHTML = '';
+  document.getElementById('spin-btn').disabled = false;
+  document.getElementById('spin-btn').style.opacity = '1';
+
+  let currentAngle = 0;
+  drawWheel(allActive, currentAngle);
+
+  const spinBtn = document.getElementById('spin-btn');
+  // Remove old listener
+  const newSpinBtn = spinBtn.cloneNode(true);
+  spinBtn.parentNode.replaceChild(newSpinBtn, spinBtn);
+
+  newSpinBtn.addEventListener('click', () => {
+    if (spinIsSpinning) return;
+    spinIsSpinning = true;
+    newSpinBtn.disabled = true;
+    newSpinBtn.style.opacity = '0.5';
+    document.getElementById('spin-result').innerHTML = '';
+
+    const extraSpins = 5 + Math.random() * 4; // 5-9 full rotations
+    const targetAngle = currentAngle + extraSpins * 2 * Math.PI + Math.random() * 2 * Math.PI;
+    const duration = 3500 + Math.random() * 1000;
+    const startTime = performance.now();
+    const startAngle = currentAngle;
+
+    function easeOut(t) {
+      return 1 - Math.pow(1 - t, 4);
+    }
+
+    function animate(now) {
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      currentAngle = startAngle + (targetAngle - startAngle) * easeOut(t);
+      drawWheel(allActive, currentAngle);
+
+      if (t < 1) {
+        spinAnimFrame = requestAnimationFrame(animate);
+      } else {
+        spinIsSpinning = false;
+        currentAngle = targetAngle % (2 * Math.PI);
+        drawWheel(allActive, currentAngle);
+
+        const winnerIdx = getWinnerIndex(allActive, currentAngle);
+        const winner = allActive[winnerIdx];
+        const resultEl = document.getElementById('spin-result');
+        resultEl.innerHTML = `
+          <div style="font-size:13px;color:#8E8E93;letter-spacing:2px;">PLAY THIS ONE</div>
+          <div style="font-size:26px;color:#00FF41;text-shadow:0 0 12px rgba(0,255,65,0.6);">${winner.title}</div>
+          <div style="font-size:12px;color:${winner.platformColor || '#8E8E93'};margin-top:2px;">${winner.platformLabel ? winner.platformLabel.replace(/^[^ ]+ /, '') : ''} · ${winner.hrs || '?'}h left</div>
+        `;
+        newSpinBtn.disabled = false;
+        newSpinBtn.style.opacity = '1';
+        newSpinBtn.textContent = 'SPIN AGAIN';
+      }
+    }
+
+    spinAnimFrame = requestAnimationFrame(animate);
+  });
+}
+
 function showModal(title, msg, confirmColor, onConfirm) {
   document.getElementById('modal-title').textContent = title;
   document.getElementById('modal-msg').textContent = msg;
@@ -1170,6 +1336,12 @@ function renderNowPlaying() {
     <div class="np-total-num" id="np-total">${allActive.reduce((a,g)=>a+(g.hrs||0),0)}h</div>
   `;
   content.appendChild(totalDiv);
+
+  // Spin wheel button
+  const spinBtnRow = document.createElement('div');
+  spinBtnRow.style.cssText = 'display:flex;justify-content:center;margin-bottom:14px;';
+  spinBtnRow.innerHTML = `<button onclick="showSpinWheel()" style="background:linear-gradient(135deg,#00FF41,#00CC33);color:#000;border:none;padding:12px 32px;border-radius:30px;font-family:\'Bebas Neue\',sans-serif;font-size:18px;letter-spacing:3px;cursor:pointer;box-shadow:0 0 16px rgba(0,255,65,0.35);transition:all 0.2s;" onmouseover="this.style.transform=\'scale(1.04)\'" onmouseout="this.style.transform=\'scale(1)\'">🎰 SPIN THE WHEEL</button>`;
+  content.appendChild(spinBtnRow);
 
   const card = document.createElement('div');
   card.className = 'np-card';
