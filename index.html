@@ -680,6 +680,7 @@ const PLATFORMS = [
       { title: "Viaerium", hrs: 8 },
       { title: "Kena: Bridge of Spirits", hrs: 10 },
       { title: "Dishonored 1", hrs: 12 },
+      { title: "The Witcher 3", hrs: 10 },
     ],
   },
 ];
@@ -874,7 +875,6 @@ const BEATEN = [
   "We Were Here Together",
   "We Were Here Too",
   "The Wild Eternal",
-  "The Witcher 3",
   "Wizard of Legend",
   "Yooka-Laylee",
   "Zuma's Revenge",
@@ -1378,6 +1378,7 @@ function saveState() {
     })),
     beaten: BEATEN,
     ongoing: ONGOING,
+    benched: BENCHED,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
@@ -1399,6 +1400,7 @@ function loadState() {
     }
     if (state.beaten) BEATEN.length = 0, state.beaten.forEach(b => BEATEN.push(b));
     if (state.ongoing) ONGOING.length = 0, state.ongoing.forEach(o => ONGOING.push(o));
+    if (state.benched) BENCHED.length = 0, state.benched.forEach(b => BENCHED.push(b));
   } catch(e) {
     console.log('Could not load saved state', e);
   }
