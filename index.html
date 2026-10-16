@@ -188,7 +188,6 @@ const PLATFORMS = [
     note: "Hakchi2 CE — main focus",
     active: [
       { title: "Earthbound", note: "Fourside — about to do Gold Mine", hrs: 2 },
-      { title: "Donkey Kong Country", note: "Here and there", hrs: 4 },
     ],
     queue: [
       { title: "ActRaiser", hrs: 8 },
@@ -698,6 +697,14 @@ const ONGOING = [
 const BENCHED = [
   { title: "Chibi-Robo", platform: "Switch", note: "Benched" },
   { title: "Black Mesa", platform: "PC", note: "Benched" },
+  { title: "Broforce", platform: "PC", note: "Tried, shelved" },
+  { title: "Dead Space 2", platform: "PC", note: "Tried, shelved" },
+  { title: "Outlast 2", platform: "PC", note: "Tried, shelved" },
+  { title: "Pathway", platform: "PC", note: "Tried, shelved" },
+  { title: "Pumpkin Jack", platform: "PC", note: "Tried, shelved" },
+  { title: "Supraland", platform: "PC", note: "Tried, shelved" },
+  { title: "The Wild Eternal", platform: "PC", note: "Tried, shelved" },
+  { title: "Yooka-Laylee", platform: "PC", note: "Tried, shelved" },
   { title: "Summer Catchers", platform: "PC", note: "Dropped" },
   { title: "Mechanicus", platform: "Switch", note: "Benched" },
   { title: "Age of Empires II", platform: "PC", note: "Tried, shelved" },
@@ -763,19 +770,16 @@ const BEATEN = [
   "Blue Fire",
   "BOKURA",
   "Borderlands GOTY",
-  "Broforce",
   "Brotato",
   "The Cabin Factory",
   "Celeste",
   "Children of Morta",
   "CHRONO TRIGGER",
-  "Cobalt Core",
   "Crash Bandicoot N. Sane Trilogy",
   "CrossCode",
   "Cuphead",
   "Darkest Dungeon",
   "Dead Cells",
-  "Dead Space 2",
   "Death Must Die",
   "Death's Door",
   "DEVIATOR",
@@ -824,15 +828,12 @@ const BEATEN = [
   "Ori and the Will of the Wisps",
   "Outer Wilds",
   "Outlast",
-  "Outlast 2",
   "Overcooked",
   "Overcooked! 2",
   "Owl Watch",
-  "Pathway",
   "Project Warlock",
   "Pseudoregalia",
   "Psychonauts",
-  "Pumpkin Jack",
   "Rabi-Ribi",
   "Refunct",
   "RiME",
@@ -851,7 +852,6 @@ const BEATEN = [
   "Super Bunny Man",
   "Super Meat Boy",
   "Superflight",
-  "Supraland",
   "To the Moon",
   "Undertale",
   "The Unfinished Swan",
@@ -862,9 +862,6 @@ const BEATEN = [
   "We Were Here Forever",
   "We Were Here Together",
   "We Were Here Too",
-  "The Wild Eternal",
-  "Wizard of Legend",
-  "Yooka-Laylee",
   "Zuma's Revenge",
   "BioShock Infinite",
   "Halo: Combat Evolved (Heroic)",
@@ -879,12 +876,14 @@ const BEATEN = [
   "Mario Galaxy (story)",
   "Tunic",
   "Olija",
-  "Spyro Reignited (story)",
   "Super Metroid",
   "Breath of the Wild",
   "Satisfactory",
   "Viaerium",
   "Crush Roller",
+  "Valheim",
+  "PEAK",
+  "Animal Well",
 ];
 
 let currentTab = "snes";
@@ -1294,6 +1293,14 @@ function renderOngoing() {
 function renderBenched() {
   const content = document.getElementById('content');
   content.innerHTML = '';
+  const counter = document.createElement('div');
+  counter.style.cssText = 'font-family:"Bebas Neue",sans-serif;font-size:80px;color:#FF9500;letter-spacing:4px;text-align:center;padding:16px 0 4px;line-height:1';
+  counter.textContent = BENCHED.length + ' BENCHED';
+  const sub = document.createElement('div');
+  sub.style.cssText = 'font-family:"Bebas Neue",sans-serif;font-size:14px;color:rgba(255,255,255,0.3);letter-spacing:3px;text-align:center;margin-bottom:20px;';
+  sub.textContent = 'SHELVED GAMES';
+  content.appendChild(counter);
+  content.appendChild(sub);
   const card = document.createElement('div');
   card.className = 'card';
   BENCHED.forEach(g => {
