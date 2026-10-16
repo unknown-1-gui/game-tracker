@@ -740,7 +740,6 @@ const BENCHED = [
   { title: "Spiritfarer", platform: "PC", note: "Tried, shelved" },
   { title: "Straima", platform: "PC", note: "Tried, shelved" },
   { title: "Sunset Overdrive", platform: "PC", note: "Tried, shelved" },
-  { title: "Super Bunny Man", platform: "PC", note: "Tried, shelved" },
   { title: "The Swapper", platform: "PC", note: "Tried, shelved" },
   { title: "Talos Principle", platform: "PC", note: "Tried, shelved" },
   { title: "Tyranny", platform: "PC", note: "Tried, shelved" },
@@ -758,7 +757,6 @@ const BEATEN = [
   "BADLAND: GOTY Edition",
   "Balatro",
   "Bastion",
-  "Black Mesa",
   "Blasphemous",
   "Blasphemous 2",
   "Bloons TD 6",
@@ -786,9 +784,7 @@ const BEATEN = [
   "DOOM",
   "DOOM Eternal",
   "DUSK",
-  "Eastshade",
   "Environmental Station Alpha",
-  "Eternal Hope",
   "Etherborn",
   "Europa",
   "Exo One",
@@ -797,7 +793,6 @@ const BEATEN = [
   "Firewatch",
   "Flower",
   "Furi",
-  "Getting Over It",
   "GRIS",
   "Guacamelee! 2",
   "Gunfire Reborn",
@@ -813,7 +808,6 @@ const BEATEN = [
   "INMOST",
   "INSIDE",
   "Journey",
-  "Life is Strange",
   "LIMBO",
   "Little Misfortune",
   "Little Nightmares",
@@ -821,7 +815,6 @@ const BEATEN = [
   "Mandagon",
   "Megabonk",
   "The Messenger",
-  "Metro 2033 Redux",
   "Minami Lane",
   "Nine Sols",
   "Noita",
@@ -841,15 +834,11 @@ const BEATEN = [
   "Psychonauts",
   "Pumpkin Jack",
   "Rabi-Ribi",
-  "Rayman Legends",
   "Refunct",
   "RiME",
-  "Risen",
   "Risk of Rain 2",
   "Sable",
   "Scarlet Maiden",
-  "Seasons after Fall",
-  "Shift Happens",
   "THE SHORE",
   "A Short Hike",
   "Sifu",
@@ -858,7 +847,6 @@ const BEATEN = [
   "Sphinx and the Cursed Mummy",
   "STAR WARS Jedi: Fallen Order",
   "A Story About My Uncle",
-  "Summer Catchers",
   "Sundered",
   "Super Bunny Man",
   "Super Meat Boy",
@@ -878,14 +866,13 @@ const BEATEN = [
   "Wizard of Legend",
   "Yooka-Laylee",
   "Zuma's Revenge",
-  "BioShock Infinite", "Sable",
+  "BioShock Infinite",
   "Halo: Combat Evolved (Heroic)",
   "KOTOR 1",
   "The Knight Witch",
   "Alba: A Wildlife Adventure",
   "Bō: Path of the Teal Lotus",
   "Katana Zero",
-  "Silksong",
   "The Artful Escape",
   "Call of Juarez: Gunslinger",
   "Yoku's Island Express",
@@ -893,13 +880,10 @@ const BEATEN = [
   "Tunic",
   "Olija",
   "Spyro Reignited (story)",
-  "Afterimage",
   "Super Metroid",
   "Breath of the Wild",
   "Satisfactory",
   "Viaerium",
-  "Kena: Bridge of Spirits",
-  "Dishonored 1",
   "Crush Roller",
 ];
 
@@ -1266,14 +1250,31 @@ function renderPlatform(p) {
     cols.appendChild(col);
   }
 
+  const queueCol = document.createElement('div');
+  queueCol.innerHTML = '<div class="section-label">📋 Up Next — tick to start playing</div>';
   if (p.queue && p.queue.length) {
-    const col = document.createElement('div');
-    col.innerHTML = '<div class="section-label">📋 Up Next — tick to start playing</div>';
-    col.appendChild(makeCard(p.queue, p.id, 'queue', '#007AFF'));
-    cols.appendChild(col);
+    queueCol.appendChild(makeCard(p.queue, p.id, 'queue', '#007AFF'));
   }
+  // Add game to queue button
+  const addQueueBtn = document.createElement('button');
+  addQueueBtn.textContent = '+ Add to Queue';
+  addQueueBtn.style.cssText = 'margin-top:8px;width:100%;background:rgba(0,122,255,0.12);color:#007AFF;border:1px dashed rgba(0,122,255,0.4);border-radius:10px;padding:10px;font-family:"Bebas Neue",sans-serif;font-size:16px;letter-spacing:1px;cursor:pointer;';
+  addQueueBtn.onclick = () => addGameToQueue(p);
+  queueCol.appendChild(addQueueBtn);
+  cols.appendChild(queueCol);
 
   content.appendChild(cols);
+}
+
+function addGameToQueue(p) {
+  const title = prompt('Game title:');
+  if (!title || !title.trim()) return;
+  const hrs = prompt('Hours to beat (number):');
+  const h = parseInt(hrs) || 0;
+  if (!p.queue) p.queue = [];
+  p.queue.push({ title: title.trim(), hrs: h });
+  saveState();
+  switchTab(p.id);
 }
 
 function renderOngoing() {
@@ -1325,19 +1326,109 @@ function renderBeaten() {
   counter.style.cssText = 'font-family:"Bebas Neue",sans-serif;font-size:80px;color:#00FF41;letter-spacing:4px;text-align:center;padding:16px 0 4px;line-height:1';
   counter.textContent = BEATEN.length + ' BEATEN';
   const sub = document.createElement('div');
-  sub.style.cssText = 'font-family:"Bebas Neue",sans-serif;font-size:14px;color:rgba(255,255,255,0.3);letter-spacing:3px;text-align:center;margin-bottom:20px;';
+  sub.style.cssText = 'font-family:"Bebas Neue",sans-serif;font-size:14px;color:rgba(255,255,255,0.3);letter-spacing:3px;text-align:center;margin-bottom:12px;';
   sub.textContent = 'GAMES COMPLETED';
   content.appendChild(counter);
   content.appendChild(sub);
+
+  // Toolbar: Add game + Export/Import
+  const toolbar = document.createElement('div');
+  toolbar.style.cssText = 'display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:16px;';
+  toolbar.innerHTML = `
+    <button onclick="addBeatenGame()" style="background:#34C759;color:#000;border:none;border-radius:10px;padding:8px 16px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;cursor:pointer;">+ ADD GAME</button>
+    <button onclick="exportData()" style="background:#0A84FF;color:#fff;border:none;border-radius:10px;padding:8px 16px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;cursor:pointer;">⬇ EXPORT</button>
+    <button onclick="importData()" style="background:#FF9500;color:#000;border:none;border-radius:10px;padding:8px 16px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;cursor:pointer;">⬆ IMPORT</button>
+  `;
+  content.appendChild(toolbar);
+
   const card = document.createElement('div');
   card.className = 'card';
-  BEATEN.forEach(g => {
+  BEATEN.forEach((g, idx) => {
     const row = document.createElement('div');
     row.className = 'row';
-    row.innerHTML = `<span style="font-size:14px">✅</span><div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:rgba(255,255,255,0.4)">${g}</div>`;
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;';
+    row.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:14px">✅</span>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:rgba(255,255,255,0.4)">${g}</div>
+      </div>
+      <button onclick="removeBeatenGame(${idx})" style="background:rgba(255,59,48,0.15);color:#FF3B30;border:1px solid rgba(255,59,48,0.3);border-radius:8px;padding:4px 10px;font-size:13px;cursor:pointer;flex-shrink:0;">✕</button>
+    `;
     card.appendChild(row);
   });
   content.appendChild(card);
+}
+
+function addBeatenGame() {
+  const title = prompt('Game title:');
+  if (!title || !title.trim()) return;
+  const t = title.trim();
+  if (BEATEN.includes(t)) { alert(t + ' is already in your beaten list.'); return; }
+  BEATEN.push(t);
+  saveState();
+  renderBeaten();
+  updateSticker();
+}
+
+function removeBeatenGame(idx) {
+  const title = BEATEN[idx];
+  if (!confirm('Remove "' + title + '" from beaten?')) return;
+  BEATEN.splice(idx, 1);
+  saveState();
+  renderBeaten();
+  updateSticker();
+}
+
+function exportData() {
+  const state = {
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    platforms: PLATFORMS.map(p => ({ id: p.id, active: p.active, queue: p.queue, rotation: p.rotation || [] })),
+    beaten: BEATEN,
+    ongoing: ONGOING,
+    benched: BENCHED,
+  };
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'game-tracker-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const state = JSON.parse(ev.target.result);
+        if (!state.beaten || !state.platforms) { alert('Invalid backup file.'); return; }
+        if (!confirm('This will replace ALL your current data with the backup. Are you sure?')) return;
+        if (state.platforms) {
+          state.platforms.forEach(saved => {
+            const p = PLATFORMS.find(p => p.id === saved.id);
+            if (p) { p.active = saved.active || []; p.queue = saved.queue || []; if (saved.rotation) p.rotation = saved.rotation; }
+          });
+        }
+        if (state.beaten) { BEATEN.length = 0; state.beaten.forEach(b => BEATEN.push(b)); }
+        if (state.ongoing) { ONGOING.length = 0; state.ongoing.forEach(o => ONGOING.push(o)); }
+        if (state.benched) { BENCHED.length = 0; state.benched.forEach(b => BENCHED.push(b)); }
+        saveState();
+        renderBeaten();
+        updateSticker();
+        renderSummary();
+        alert('Import successful! ' + BEATEN.length + ' beaten games loaded.');
+      } catch(err) { alert('Could not read backup file: ' + err.message); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
 }
 
 
